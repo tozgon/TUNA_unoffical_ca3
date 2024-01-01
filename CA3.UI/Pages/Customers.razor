@@ -1,0 +1,87 @@
+﻿@page "/customers"
+@using CA3.DataModels;
+@using CA3.UI.Services;
+@inject ICustomerService _customerService
+@inject NavigationManager NavigationManager
+
+@code {
+	private IEnumerable<Customer> Data = null;
+
+	protected override async Task OnInitializedAsync()
+	{
+		await base.OnInitializedAsync();
+		Data = await _customerService.getCustomers();
+
+	}
+
+	void CreateNewCustomer()
+	{
+		NavigationManager.NavigateTo("/customer");
+	}
+
+	void ShowCustomer(int id)
+	{
+		NavigationManager.NavigateTo($"customer/{id}");
+	}
+}
+
+<h3>Customers</h3>
+@if (Data == null)
+{
+	<h3>Loading...</h3>
+}
+else
+{
+
+	<table class="table">
+		<thead>
+			<tr>
+				<th>
+					First Name
+				</th>
+				<th>
+					Last Name
+				</th>
+				<th>
+					Date of Birth
+				</th>
+				<th>
+					Annual Spend
+				</th>
+				<th>
+				</th>
+			</tr>
+		</thead>
+		<tbody>
+			@if (Data.Any())
+			{
+				@foreach (var item in Data)
+				{
+					<tr>
+						<td>@item.FirstName</td>
+						<td>@item.LastName</td>
+						<td>@item.DateOfBirth</td>
+						<td>@item.AnnualSpend</td>
+						<td>
+							<button class="btn btn-primary"
+						@onclick="(() => ShowCustomer(item.CustomerId))">
+								<i class="oi oi-pencil"></i>
+							</button>
+						</td>
+					</tr>
+				}
+			}
+			else
+			{
+				<tr>
+					No Data Found
+				</tr>
+			}
+
+		</tbody>
+	</table>
+	<button class="btn btn-primary" @onclick="CreateNewCustomer">
+		Create New Customer
+	</button>
+
+}

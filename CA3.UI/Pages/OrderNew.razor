@@ -1,0 +1,197 @@
+﻿@page "/order/{customerId:int}"
+@page "/order/{customerId:int}/{id:int}"
+@using CA3.DataModels
+@using CA3.UI.Services
+@using System.Net
+@inject ICustomerService _customerService;
+@inject NavigationManager NavigationManager
+
+@code {
+	[Parameter]
+	public int? Id { get; set; }
+
+	[Parameter]
+	public int? CustomerId { get; set; }
+
+	Order order = new();
+
+	OrderItem orderItem = new();
+
+
+	string btnText = string.Empty;
+
+	protected override void OnInitialized()
+	{
+		btnText = Id == null ? "Save Order" : "Update Order";
+	}
+
+	protected override async Task OnParametersSetAsync()
+	{
+		if (Id is not null)
+		{
+			var result = await _customerService.GetOrderById((int)Id);
+			if (result is not null)
+				order = result;
+			else
+				NavigationManager.NavigateTo("/order");
+		}
+	}
+
+	async Task HandleSubmit()
+	{
+		order.CustomerId = (int)CustomerId;
+
+		if (Id is null)
+		{
+
+
+			var response = await _customerService.CreateOrder(order);
+			if (response.StatusCode == HttpStatusCode.Created)
+			{
+				NavigationManager.NavigateTo($"/customer/{order.CustomerId}");
+			}
+			//
+		}
+		else
+		{
+			var response = await _customerService.UpdateOrder((int)Id, order);
+			if (response.StatusCode == HttpStatusCode.NoContent)
+			{
+				NavigationManager.NavigateTo($"/customer/{order.CustomerId}");
+			}
+		}
+
+	}
+
+	async Task DeleteOrder()
+	{
+		var response = await _customerService.DeleteOrder(order);
+		if (response.StatusCode == HttpStatusCode.NoContent)
+		{
+			NavigationManager.NavigateTo($"/customer/{order.CustomerId}");
+		}
+
+	}
+
+	void AddOrderItem()
+	{
+		if (Id != null)
+		{
+			orderItem.OrderId = (int)Id;
+		}
+
+		order.OrderItems.Add(orderItem);
+		orderItem = new();
+	}
+
+	void DeleteOrderItem(int index)
+	{
+		order.OrderItems.RemoveAt(index);
+
+	}
+
+}
+
+
+@if (Id is null)
+{
+	<PageTitle>Create a new Order</PageTitle>
+	<h3>Create a new Order</h3>
+}
+else
+{
+	<PageTitle>Edit ID[@order.OrderId]</PageTitle>
+
+}
+
+<EditForm Model="order">
+	<div>
+		<label for="OrderId">Order Id</label>
+		<InputNumber id="OrderId" style="width: 100px;" @bind-Value="@order.OrderId" class="form-control" readonly="@true" />
+	</div>
+	<div>
+		<label for="Date">Date</label>
+		<InputText id="Date" style="width: 300px;" @bind-Value="@order.Date" class="form-control" />
+	</div>
+
+</EditForm>
+<div>-----------------------------------------------------------------------------------------</div>
+<br />
+<br />
+<h3>Order Items</h3>
+
+<EditForm Model="orderItem">
+	<div>
+		<label for="ProductName">Product Name</label>
+		<InputText id="ProductName" style="width: 300px;" @bind-Value="@orderItem.ProductName" class="form-control" />
+	</div>
+	<div>
+		<label for="Quantity">Quantity</label>
+		<InputNumber id="Quantity" style="width: 100px;" @bind-Value="@orderItem.Quantity" class="form-control" />
+	</div>
+	<div>
+		<label for="UnitPrice">Quantity</label>
+		<InputNumber id="UnitPrice" style="width: 100px;" @bind-Value="@orderItem.UnitPrice" class="form-control" />
+	</div>
+	<br />
+	<button type="submit" class="btn btn-primary" @onclick="AddOrderItem">Add Item</button>
+
+</EditForm>
+
+
+<table class="table">
+	<thead>
+		<tr>
+			<th>
+				Product Name
+			</th>
+			<th>
+				Quantity
+			</th>
+			<th>
+				Unit Price
+			</th>
+			<th>
+			</th>
+		</tr>
+	</thead>
+	<tbody>
+		@{
+			int index = 0;
+		}
+		@if (order.OrderItems.Count > 0)
+		{
+			@foreach (var item in order.OrderItems)
+			{
+				<tr>
+					<td>@item.ProductName</td>
+					<td>@item.Quantity</td>
+					<td>@item.UnitPrice</td>
+					<td>
+						<button class="btn btn-danger" @onclick="(() => DeleteOrderItem(index))">
+							<i class="oi oi-trash"></i>
+						</button>
+					</td>
+				</tr>
+			}
+		}
+		else
+		{
+			<tr>
+				No Data Found
+			</tr>
+		}
+
+
+	</tbody>
+</table>
+
+<br />
+<br />
+<button type="submit" class="btn btn-primary" @onclick="HandleSubmit">@btnText</button>
+@if (Id is not null)
+{
+	<button type="button" class="btn btn-danger" @onclick="DeleteOrder">
+		Delete Order
+	</button>
+}
